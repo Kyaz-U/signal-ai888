@@ -26,14 +26,12 @@ def manual_signal(msg):
 def send_signal(last_3):
     proba = predict_signal(last_3)
     foiz = round(proba * 100, 2)
-    if foiz >= 70:
-        text = (
-            "✈️ YANGI RAUND - Aviator\n"
-            f"Signal: EHTIMOLI YUQORI ➜ 1.80x+\n"
-            f"Tavsiya: Hozir pul tiking\n"
-            f"Ishonchlilik darajasi: {foiz}%"
-        )
-        bot.send_message(ADMIN_ID, text)
+    text = (
+        "✈️ TEST SIGNAL - Aviator\n"
+        f"Oxirgi 3 koeffitsiyent: {last_3}\n"
+        f"Ehtimol (1.80x+): {foiz}%"
+    )
+    bot.send_message(ADMIN_ID, text)
 
 def auto_loop():
     while True:
