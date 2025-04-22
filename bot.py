@@ -1,38 +1,33 @@
 import telebot
-import os
 from dotenv import load_dotenv
-from api_client import get_latest_coefficients
+import os
 from predict_model import predict_signal
 
-# .env fayldan tokenni yuklash
 load_dotenv()
-TOKEN = os.getenv("BOT_TOKEN")
 
-# Botni ishga tushirish
+TOKEN = os.getenv("TELEGRAM_TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
-# Boshlanish komandasi
 @bot.message_handler(commands=['start'])
-def welcome(message):
+def start(message):
     bot.send_message(message.chat.id, "Assalomu alaykum! Aviator signal bot ishga tushdi.")
 
-# Signal komandasi
-from predict_model import predict_signal
-import numpy as np
+@bot.message_handler(commands=['signal'])
+def get_signal(message):
+    bot.send_message(message.chat.id, "Oxirgi 3 ta koeffitsiyentni vergul bilan kiriting (masalan: 1.8, 2.0, 1.6)")
+    bot.register_next_step_handler(message, process_coeffs)
 
-@bot.message_handler(commands=["signal"])
-def handle_signal(message):
-    # Oxirgi 3 ta qiymat — eng so‘nggi aylanishlar:
-    last_coeffs = [5.01, 2.05, 2.25]
-    k1, k2, k3 = last_coeffs
-    ehtimol = predict_signal(k1, k2, k3)
+def process_coeffs(message):
+    try:
+        k1, k2, k3 = map(float, message.text.split(","))
+        prediction = predict_signal(k1, k2, k3)
+        reply = (
+            "✈️ TEST SIGNAL - Aviator\n"
+            f"Oxirgi 3 koeffitsiyent: [{round(k1, 2)}, {round(k2, 2)}, {round(k3, 2)}]\n"
+            f"Ehtimol (1.80x+): {round(prediction * 100, 1)}%"
+        )
+        bot.send_message(message.chat.id, reply)
+    except:
+        bot.send_message(message.chat.id, "Xatolik! Format: 1.8, 2.0, 1.6 — shunday kiriting.")
 
-    msg = (
-        "✈️ TEST SIGNAL - Aviator\n"
-        f"Oxirgi 3 koeffitsiyent: [{k1}, {k2}, {k3}]\n"
-        f"🧠 Ehtimol (1.80x+): {ehtimol}%"
-    )
-    bot.send_message(message.chat.id, msg)
-
-# Botni doimiy ishga tushirish
 bot.polling()
