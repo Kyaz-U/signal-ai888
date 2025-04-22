@@ -1,0 +1,34 @@
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+import pickle
+
+# CSV dan koeffitsiyentlar (manual ro'yxat)
+coefficients = [
+    2.48, 2.99, 1.06, 1.04, 1.93, 7.66, 2.99, 1.76, 1.00, 3.88, 2.56, 1.15, 5.87, 1.03, 2.30, 1.52,
+    8.91, 1.54, 1.49, 2.32, 1.59, 3.56, 1.17, 2.43, 22.09, 1.06, 3.49, 2.77, 1.77, 2.01, 1.30, 1.00,
+    1.43, 1.31, 1.47, 1.22, 3.43, 2.60, 1.64, 1.87, 1.23, 1.59, 8.31, 1.82, 1.48, 1.28, 1.16, 2.02,
+    1.16, 1.12, 2.41, 5.01, 2.05, 2.25, 2.09, 8.71, 1.29, 1.07, 1.76, 1.41, 1.09, 1.92, 4.30, 2.14,
+    1.33, 7.67, 3.48, 4.80, 37.91, 1.17, 2.88, 1.16, 5.97, 2.00, 1.57, 1.13, 1.40, 3.80, 1.07, 8.28, 3.37
+]
+
+# Data tayyorlash: (k1, k2, k3 → next)
+data = []
+for i in range(len(coefficients) - 3):
+    k1, k2, k3, nxt = coefficients[i], coefficients[i+1], coefficients[i+2], coefficients[i+3]
+    data.append([k1, k2, k3, nxt])
+
+df = pd.DataFrame(data, columns=['k1', 'k2', 'k3', 'next'])
+df['target'] = (df['next'] >= 1.80).astype(int)
+
+X = df[['k1', 'k2', 'k3']]
+y = df['target']
+
+# Modelni o‘qitish
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X, y)
+
+# Modelni saqlash
+with open("models/aviator_model.pkl", "wb") as f:
+    pickle.dump(model, f)
+
+print("Model tayyor va saqlandi: models/aviator_model.pkl")
