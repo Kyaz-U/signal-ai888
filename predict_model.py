@@ -1,8 +1,8 @@
+import pickle
+import numpy as np
+
 def predict_signal(last_3):
-    avg = sum(last_3)/len(last_3)
-    if avg >= 2.0:
-        return 0.8
-    elif avg >= 1.5:
-        return 0.6
-    else:
-        return 0.3
+    with open("models/aviator_model.pkl", "rb") as f:
+        model = pickle.load(f)
+    input_data = np.array(last_3).reshape(1, -1)
+    return model.predict_proba(input_data)[0][1]  # Ehtimol: 1.80x+
