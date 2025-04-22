@@ -17,20 +17,22 @@ def welcome(message):
     bot.send_message(message.chat.id, "Assalomu alaykum! Aviator signal bot ishga tushdi.")
 
 # Signal komandasi
-@bot.message_handler(commands=['signal'])
-def send_signal(message):
-    try:
-        coeffs = get_latest_coefficients()
-        prediction = predict_signal(coeffs)
+from predict_model import predict_signal
+import numpy as np
 
-        text = (
-            "✈️ TEST SIGNAL - Aviator\n"
-            f"Oxirgi 3 koeffitsiyent: {coeffs}\n"
-            f"Ehtrimol (1.80x+): {prediction * 100:.1f}%"
-        )
-        bot.send_message(message.chat.id, text)
-    except Exception as e:
-        bot.send_message(message.chat.id, f"Xatolik: {e}")
+@bot.message_handler(commands=["signal"])
+def handle_signal(message):
+    # Oxirgi 3 ta qiymat — eng so‘nggi aylanishlar:
+    last_coeffs = [5.01, 2.05, 2.25]
+    k1, k2, k3 = last_coeffs
+    ehtimol = predict_signal(k1, k2, k3)
+
+    msg = (
+        "✈️ TEST SIGNAL - Aviator\n"
+        f"Oxirgi 3 koeffitsiyent: [{k1}, {k2}, {k3}]\n"
+        f"🧠 Ehtimol (1.80x+): {ehtimol}%"
+    )
+    bot.send_message(message.chat.id, msg)
 
 # Botni doimiy ishga tushirish
 bot.polling()
