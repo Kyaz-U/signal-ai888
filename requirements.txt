@@ -1,3 +1,4 @@
 pandas
 scikit-learn
+python-dotenv
 pyTelegramBotAPI==4.12.0
