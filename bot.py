@@ -1,33 +1,31 @@
 import telebot
-from dotenv import load_dotenv
 import os
 from predict_model import predict_signal
+from signal_logger import log_signal
 
-load_dotenv()
+# Railway uchun tokenni o‘qish
+TOKEN = os.getenv("BOT_TOKEN")
+if TOKEN is None:
+    raise ValueError("BOT_TOKEN topilmadi. Railway Environment Variables’ni tekshiring.")
 
-TOKEN = os.getenv("TELEGRAM_TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
 @bot.message_handler(commands=['start'])
-def start(message):
-    bot.send_message(message.chat.id, "Assalomu alaykum! Aviator signal bot ishga tushdi.")
+def send_welcome(message):
+    bot.reply_to(message, "Assalomu alaykum! Aviator signal bot ishga tushdi.")
 
 @bot.message_handler(commands=['signal'])
-def get_signal(message):
-    bot.send_message(message.chat.id, "Oxirgi 3 ta koeffitsiyentni vergul bilan kiriting (masalan: 1.8, 2.0, 1.6)")
-    bot.register_next_step_handler(message, process_coeffs)
-
-def process_coeffs(message):
+def send_signal(message):
     try:
-        k1, k2, k3 = map(float, message.text.split(","))
-        prediction = predict_signal(k1, k2, k3)
+        prediction, last_coeffs = predict_signal()
         reply = (
             "✈️ TEST SIGNAL - Aviator\n"
-            f"Oxirgi 3 koeffitsiyent: [{round(k1, 2)}, {round(k2, 2)}, {round(k3, 2)}]\n"
-            f"Ehtimol (1.80x+): {round(prediction * 100, 1)}%"
+            f"Oxirgi 3 koeffitsiyent: {last_coeffs}\n"
+            f"Ehtimol (1.80x+): {prediction * 100:.1f}%"
         )
-        bot.send_message(message.chat.id, reply)
-    except:
-        bot.send_message(message.chat.id, "Xatolik! Format: 1.8, 2.0, 1.6 — shunday kiriting.")
+        log_signal(last_coeffs, prediction)
+        bot.reply_to(message, reply)
+    except Exception as e:
+        bot.reply_to(message, f"Xato: {e}")
 
 bot.polling()
