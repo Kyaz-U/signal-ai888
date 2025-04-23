@@ -1,31 +1,59 @@
 import telebot
+import pandas as pd
+import numpy as np
+import pickle
 import os
-from predict_model import predict_signal
-from signal_logger import log_signal
+from dotenv import load_dotenv
 
-# Railway uchun tokenni o‘qish
-TOKEN = os.getenv("BOT_TOKEN")
-if TOKEN is None:
+# .env faylni yuklaymiz
+load_dotenv()
+
+TOKEN = os.getenv("TOKEN")
+ADMIN_ID = int(os.getenv("ADMIN_ID"))
+
+if not TOKEN:
     raise ValueError("BOT_TOKEN topilmadi. Railway Environment Variables’ni tekshiring.")
 
 bot = telebot.TeleBot(TOKEN)
 
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(message, "Assalomu alaykum! Aviator signal bot ishga tushdi.")
+# Modelni yuklaymiz
+with open('models/aviator_model.pkl', 'rb') as f:
+    model = pickle.load(f)
 
+# CSV'dan oxirgi 3 ta koeffitsientni olish funksiyasi
+def get_last_3_coefficients():
+    try:
+        df = pd.read_csv("data/aviator.csv")
+        last_row = df.tail(1)
+        return float(last_row['k1']), float(last_row['k2']), float(last_row['k3'])
+    except:
+        return None, None, None
+
+# AI signal funksiyasi
+def predict_signal(k1, k2, k3):
+    data = pd.DataFrame([[k1, k2, k3]], columns=["k1", "k2", "k3"])
+    prediction = model.predict_proba(data)[0][1]
+    return prediction
+
+# /start komandasi
+@bot.message_handler(commands=['start'])
+def start_message(message):
+    bot.send_message(message.chat.id, "Assalomu alaykum! Aviator signal bot ishga tushdi.")
+
+# /signal komandasi
 @bot.message_handler(commands=['signal'])
 def send_signal(message):
-    try:
-        prediction, last_coeffs = predict_signal()
-        reply = (
-            "✈️ TEST SIGNAL - Aviator\n"
-            f"Oxirgi 3 koeffitsiyent: {last_coeffs}\n"
-            f"Ehtimol (1.80x+): {prediction * 100:.1f}%"
-        )
-        log_signal(last_coeffs, prediction)
-        bot.reply_to(message, reply)
-    except Exception as e:
-        bot.reply_to(message, f"Xato: {e}")
+    k1, k2, k3 = get_last_3_coefficients()
+    if None in (k1, k2, k3):
+        bot.reply_to(message, "Xatolik: oxirgi koeffitsientlar topilmadi.")
+        return
 
+    ehtimol = predict_signal(k1, k2, k3)
+    bot.send_message(message.chat.id,
+        f"✈️ TEST SIGNAL - Aviator\n"
+        f"Oxirgi 3 koeffitsiyent: [{round(k1,2)}, {round(k2,2)}, {round(k3,2)}]\n"
+        f"Ehtrimol (1.80x+): {round(ehtimol * 100, 1)}%"
+    )
+
+# Botni ishga tushuramiz
 bot.polling()
